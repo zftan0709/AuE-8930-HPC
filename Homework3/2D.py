@@ -4,9 +4,9 @@ import pycuda.driver as cuda
 import pycuda.autoinit 
 from pycuda.compiler import SourceModule 
 
-BLOCK_SIZE = 32 
+BLOCK_SIZE = 64
 
-n = 1600
+n = 3200
 ni = np.int32(n) 
 
 # matrix A 
@@ -38,7 +38,6 @@ __global__ void matmul2(int n, float *a, float *b, float *c)
   row_num_a=col_num_a=row_num_b=col_num_b=row_num_c=col_num_c = n;
   __shared__ float A[32][32];//2D array for storing shared matrix values of A & B
   __shared__ float B[32][32];//Process subMatrix in block
-
   
   int Col=blockIdx.x*blockDim.x+threadIdx.x;//Col and Row Ids of threads
   int Row=blockIdx.y*blockDim.y+threadIdx.y;
@@ -49,12 +48,10 @@ __global__ void matmul2(int n, float *a, float *b, float *c)
         A[threadIdx.y][threadIdx.x] = a[Row*col_num_a + i*blockDim.x+threadIdx.x];//Memory Fetch from a
      else
         A[threadIdx.y][threadIdx.x] = 0;//In case the block dim is not a multiple of matrix
-
      if (Col < col_num_b && i*blockDim.x+threadIdx.y < row_num_b)
         B[threadIdx.y][threadIdx.x] = b[(i*blockDim.x+threadIdx.y)*col_num_b+Col];//Memory Fetch from b
      else
         B[threadIdx.y][threadIdx.x] = 0;
-
      __syncthreads();//Wait for all matrix loads to shared memory - then proceed with for loop
       if (Row < row_num_c && Col < col_num_c)
          
@@ -90,20 +87,16 @@ cuda.memcpy_dtoh(c, c_gpu)
 end = time.time() 
 print ("Time: %.5f s"%(end-start))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+c_cpu = np.empty([n, n]) 
+c_cpu = c_cpu.astype(np.float32)
+start = time.time()
+#for i in range(len(a)):
+#    for j in range(len(b[0])):
+#        for k in range(len(b)):
+#            c_cpu[i][j] += a[i][k]*b[k][j]
+c_cpu = np.matmul(a,b)
+end = time.time()
+print ("Time: %.5f s"%(end-start))
+print(c[0,0])
+print(c_cpu[0,0])

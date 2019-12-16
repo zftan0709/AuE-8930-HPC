@@ -4,11 +4,12 @@ import pycuda.driver as cuda
 import pycuda.autoinit 
 from pycuda.compiler import SourceModule 
 
-BLOCK_SIZE = 256 
+BLOCK_SIZE = 32
 
 n = 1600
 ni = np.int32(n) 
 
+np.random.seed(0)
 # matrix A 
 a = np.random.randn(n, n)*10
 a = a.astype(np.float32) 
@@ -36,7 +37,6 @@ __global__ void matmul(int row_num_b, float *a, float *b, float *c)
 {
   int n = row_num_b * row_num_b;
   int i = blockIdx.x*blockDim.x + threadIdx.x;
-
   if(i<n)
   {
     int quot=i/row_num_b;
@@ -71,19 +71,7 @@ for i in range(3):
 cuda.memcpy_dtoh(c, c_gpu) 
 end = time.time() 
 print ("Time: %.5f s"%(end-start))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+c_cpu = np.matmul(a,b)
+print(c_cpu[0,0])
+print(c[0,0])
